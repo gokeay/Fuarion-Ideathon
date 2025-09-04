@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kamunun Nabzı: Sosyal Medya Haritası</title>
+    
+    <!-- Leaflet Harita Kütüphanesi CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+     crossorigin=""/>
+    
+    <style>
+        /* Genel Sayfa Stilleri */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            background-color: #f4f4f9;
+            color: #333;
+        }
+
+        /* Başlık Alanı */
+        .header {
+            background-color: #fff;
+            padding: 15px 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            text-align: center;
+            border-bottom: 3px solid #007bff;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 1.6em;
+            color: #003d7a;
+            font-weight: 600;
+        }
+        
+        .header p {
+            margin: 5px 0 0;
+            color: #666;
+        }
+
+        /* Harita Konteyneri */
+        #map {
+            flex-grow: 1;
+            width: 100%;
+        }
+
+        /* Kontrol Paneli (Filtreler) */
+        .controls {
+            background-color: #ffffff;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .controls label {
+            font-weight: bold;
+            margin-right: 5px;
+            font-size: 1.1em;
+        }
+
+        .controls select {
+            padding: 10px 15px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            font-size: 1em;
+            background-color: #f8f9fa;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+
+        .controls select:hover {
+            border-color: #007bff;
+        }
+        
+        /* ✨ Gemini API Butonu */
+        #analyze-button {
+            padding: 10px 20px;
+            font-size: 1em;
+            font-weight: bold;
+            color: #fff;
+            background: linear-gradient(45deg, #6a11cb 0%, #2575fc 100%);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        #analyze-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+        
+        #analyze-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* Harita üzerindeki Popup Stilleri */
+        .leaflet-popup-content-wrapper {
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        .leaflet-popup-content {
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .leaflet-popup-content b {
+            color: #0056b3;
+        }
+
+        /* Legend (Gösterim) Stilleri */
+        .legend {
+            padding: 10px;
+            font: 14px Arial, Helvetica, sans-serif;
+            background: rgba(255,255,255,0.9);
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+            border-radius: 8px;
+            line-height: 24px;
+        }
+
+        .legend h4 { margin: 0 0 8px; text-align: center; }
+        .legend i { width: 18px; height: 18px; float: left; margin-right: 8px; opacity: 0.9; border-radius: 50%; border: 1px solid #aaa; }
+
+        /* Analiz Sonuçları Modalı */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+        }
+
+        .modal-overlay.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background: #fff;
+            padding: 25px 30px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            transform: scale(0.9);
+            transition: transform 0.3s;
+        }
+        
+        .modal-overlay.visible .modal-content {
+            transform: scale(1);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 15px;
+            margin-bottom: 15px;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 1.5em;
+            color: #003d7a;
+        }
+
+        .close-button {
+            background: none;
+            border: none;
+            font-size: 2em;
+            cursor: pointer;
+            color: #888;
+        }
+        
+        .modal-body h3 {
+            color: #007bff;
+            margin-top: 20px;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 5px;
+        }
+
+        /* Yükleniyor Animasyonu */
+        .loader {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>Kamunun Nabzı</h1>
+        <p>Bakanlık Çalışmaları İçin Sosyal Medya Hassasiyet Haritası</p>
+    </div>
+
+    <div id="map"></div>
+
+    <div class="controls">
+        <label for="hashtag-filter">İncelenecek Gündem:</label>
+        <select id="hashtag-filter">
+            <option value="all">Tüm Gündemler</option>
+        </select>
+        <button id="analyze-button" disabled>✨ Gündemi Analiz Et</button>
+    </div>
+    
+    <!-- Gemini Analiz Sonuçları için Modal -->
+    <div id="analysis-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-title">Analiz Sonuçları</h2>
+                <button id="close-modal" class="close-button">&times;</button>
+            </div>
+            <div id="modal-body" class="modal-body">
+                <!-- Sonuçlar buraya gelecek -->
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <script>
+        // --- GÜNCELLENMİŞ SAHTE VERİ SETİ ---
+        const mockData = [
+            // #YeniMüfredat
+            { "id": 1, "hashtag": "#YeniMüfredat", "text": "Yeni müfredat çocukların gelişimine büyük katkı sağlayacak, harika!", "timestamp": "2025-08-25T10:00:00", "location": [41.0082, 28.9784], "sentiment": "pozitif" }, // İstanbul
+            { "id": 4, "hashtag": "#YeniMüfredat", "text": "Bu müfredatın bazı kısımları hakkında endişelerim var. Daha şeffaf olunmalı.", "timestamp": "2025-08-26T09:15:00", "location": [37.0665, 37.3783], "sentiment": "negatif" }, // Gaziantep
+            { "id": 7, "hashtag": "#YeniMüfredat", "text": "#YeniMüfredat hakkında yapılan sunumu izledim. Sonuçlarını zamanla göreceğiz.", "timestamp": "2025-08-27T18:00:00", "location": [41.2928, 36.3313], "sentiment": "nötr" }, // Samsun
+            { "id": 10, "hashtag": "#YeniMüfredat", "text": "Eğitimde atılan bu adımı destekliyorum. Öğretmen görüşleri alınmış mı merak ediyorum.", "timestamp": "2025-08-29T11:00:00", "location": [39.9097, 41.2755], "sentiment": "pozitif" }, // Erzurum
+
+            // #SağlıktaDönüşüm
+            { "id": 2, "hashtag": "#SağlıktaDönüşüm", "text": "Randevu sistemindeki sorunlar hala devam ediyor. #SağlıktaDönüşüm bu mu?", "timestamp": "2025-08-25T11:30:00", "location": [39.9334, 32.8597], "sentiment": "negatif" }, // Ankara
+            { "id": 6, "hashtag": "#SağlıktaDönüşüm", "text": "Yeni şehir hastaneleri gerçekten çok modern ve donanımlı. Teşekkürler.", "timestamp": "2025-08-27T16:45:00", "location": [37.8713, 32.4846], "sentiment": "pozitif" }, // Konya
+            { "id": 8, "hashtag": "#SağlıktaDönüşüm", "text": "İlaçlara erişimde zaman zaman sıkıntılar yaşanıyor, bu konu çözülmeli.", "timestamp": "2025-08-28T10:20:00", "location": [36.8969, 30.7133], "sentiment": "negatif" }, // Antalya
+            
+            // #YerliOtomobilTOGG
+            { "id": 3, "hashtag": "#YerliOtomobilTOGG", "text": "TOGG'un yeni modeli hakkında bir haber okudum.", "timestamp": "2025-08-25T12:00:00", "location": [38.4237, 27.1428], "sentiment": "nötr" }, // İzmir
+            { "id": 5, "hashtag": "#YerliOtomobilTOGG", "text": "Gurur duyduk! #YerliOtomobilTOGG yollarda görmek çok güzel. Tasarımı harika.", "timestamp": "2025-08-26T14:00:00", "location": [40.1885, 29.0609], "sentiment": "pozitif" }, // Bursa
+            { "id": 9, "hashtag": "#YerliOtomobilTOGG", "text": "TOGG'un fiyatı konusunda eleştiriler var. Daha ulaşılabilir olmalı.", "timestamp": "2025-08-28T13:00:00", "location": [37.9100, 40.2336], "sentiment": "negatif" }  // Diyarbakır
+        ];
+
+        // --- DOM ELEMENTLERİ ---
+        const map = L.map('map').setView([39.0, 35.0], 6);
+        const hashtagFilter = document.getElementById('hashtag-filter');
+        const analyzeButton = document.getElementById('analyze-button');
+        const modalOverlay = document.getElementById('analysis-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalBody = document.getElementById('modal-body');
+        const closeModalButton = document.getElementById('close-modal');
+        let tweetLayer = L.layerGroup().addTo(map);
+
+        // --- HARİTA AYARLARI ---
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        const sentimentColors = { "pozitif": "#28a745", "negatif": "#dc3545", "nötr": "#ffc107" };
+
+        const legend = L.control({position: 'bottomright'});
+        legend.onAdd = function (map) {
+            const div = L.DomUtil.create('div', 'info legend');
+            const sentiments = ['pozitif', 'negatif', 'nötr'];
+            div.innerHTML += '<h4>Duygu Durumu</h4>';
+            sentiments.forEach(s => {
+                div.innerHTML += `<i style="background:${sentimentColors[s]}"></i> ${s.charAt(0).toUpperCase() + s.slice(1)}<br>`;
+            });
+            return div;
+        };
+        legend.addTo(map);
+        
+        // --- GEMINI API FONKSİYONU ---
+        async function callGeminiAPI(prompt) {
+            const apiKey = ""; // Canvas ortamı bunu otomatik olarak yönetir.
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+            const payload = {
+                contents: [{ parts: [{ text: prompt }] }],
+            };
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (!response.ok) {
+                    throw new Error(`API hatası: ${response.statusText}`);
+                }
+                const result = await response.json();
+                return result.candidates[0].content.parts[0].text;
+            } catch (error) {
+                console.error("Gemini API çağrısı başarısız:", error);
+                return "Analiz sırasında bir hata oluştu. Lütfen daha sonra tekrar deneyin.";
+            }
+        }
+        
+        // --- UYGULAMA MANTIĞI ---
+        function updateMap(hashtag = 'all') {
+            tweetLayer.clearLayers();
+            const filteredData = (hashtag === 'all')
+                ? mockData
+                : mockData.filter(tweet => tweet.hashtag === hashtag);
+
+            filteredData.forEach(tweet => {
+                const [lat, lon] = tweet.location;
+                const circle = L.circleMarker([lat, lon], {
+                    radius: 8,
+                    fillColor: sentimentColors[tweet.sentiment],
+                    color: "#fff", weight: 2, opacity: 1, fillOpacity: 0.85
+                }).addTo(tweetLayer);
+                
+                circle.bindPopup(`<b>Gündem:</b> ${tweet.hashtag}<br><b>Duygu:</b> ${tweet.sentiment}<hr style="margin: 5px 0;"><em>"${tweet.text}"</em>`);
+            });
+        }
+        
+        function populateHashtags() {
+            const hashtags = [...new Set(mockData.map(tweet => tweet.hashtag))];
+            hashtags.forEach(tag => {
+                const option = document.createElement('option');
+                option.value = tag; option.textContent = tag;
+                hashtagFilter.appendChild(option);
+            });
+        }
+
+        async function handleAnalysis() {
+            const selectedHashtag = hashtagFilter.value;
+            if (selectedHashtag === 'all') return;
+
+            modalTitle.textContent = `${selectedHashtag} Analizi`;
+            modalBody.innerHTML = '<div class="loader"></div>';
+            modalOverlay.classList.add('visible');
+
+            const relatedTweets = mockData
+                .filter(tweet => tweet.hashtag === selectedHashtag)
+                .map(tweet => `- "${tweet.text}" (Duygu: ${tweet.sentiment})`)
+                .join('\n');
+
+            const prompt = `
+                Bir sosyal politika analisti olarak, Türkiye'deki bir bakanlık çalışması hakkındaki aşağıdaki sosyal medya paylaşımlarını analiz et.
+                Vatandaşların genel eğilimlerini, endişelerini ve olumlu buldukları noktaları özetle.
+                Sonucunda, bakanlık için net ve uygulanabilir tavsiyeler sun. Cevabını Türkçe ve Markdown formatında, aşağıdaki başlıkları kullanarak oluştur:
+
+                Paylaşımlar:
+                ${relatedTweets}
+
+                ---
+                ### Genel Duygu Özeti
+                [Buraya halkın genel duygu durumunu (pozitif, negatif, karışık) ve bunun ana nedenlerini açıklayan bir paragraf yaz.]
+
+                ### Öne Çıkan Konular
+                [Buraya insanların tartıştığı 2-3 ana konuyu madde imleri ile listele.]
+
+                ### Bakanlık İçin Eylem Önerileri
+                [Buraya halkın geri bildirimlerine dayalı olarak bakanlığın atabileceği 2 somut ve uygulanabilir adımı madde imleri ile listele.]
+            `;
+            
+            const analysisResult = await callGeminiAPI(prompt);
+            
+            // Markdown'ı basit HTML'e çevirelim
+            let htmlResult = analysisResult
+                .replace(/### (.*)/g, '<h3>$1</h3>')
+                .replace(/\* (.*)/g, '<ul><li>$1</li></ul>')
+                .replace(/<\/ul>\n<ul>/g, ''); // Bitişik listeleri birleştir
+
+            modalBody.innerHTML = htmlResult;
+        }
+
+        // --- OLAY DİNLEYİCİLERİ (EVENT LISTENERS) ---
+        hashtagFilter.addEventListener('change', () => {
+            updateMap(hashtagFilter.value);
+            analyzeButton.disabled = (hashtagFilter.value === 'all');
+        });
+
+        analyzeButton.addEventListener('click', handleAnalysis);
+        closeModalButton.addEventListener('click', () => modalOverlay.classList.remove('visible'));
+        modalOverlay.addEventListener('click', (e) => {
+            if (e.target === modalOverlay) {
+                modalOverlay.classList.remove('visible');
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            populateHashtags();
+            updateMap();
+        });
+    </script>
+</body>
+</html>
