@@ -3,420 +3,210 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kamunun Nabzı: Sosyal Medya Haritası</title>
+    <title>Analiz Ekranı: Gönderi Etki Raporu</title>
     
-    <!-- Leaflet Harita Kütüphanesi CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-     crossorigin=""/>
+    <!-- Gerekli JavaScript kütüphanelerini ekliyoruz -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
     
-    <style>
-        /* Genel Sayfa Stilleri */
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            background-color: #f4f4f9;
-            color: #333;
-        }
-
-        /* Başlık Alanı */
-        .header {
-            background-color: #fff;
-            padding: 15px 20px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            text-align: center;
-            border-bottom: 3px solid #007bff;
-        }
-
-        .header h1 {
-            margin: 0;
-            font-size: 1.6em;
-            color: #003d7a;
-            font-weight: 600;
-        }
-        
-        .header p {
-            margin: 5px 0 0;
-            color: #666;
-        }
-
-        /* Harita Konteyneri */
-        #map {
-            flex-grow: 1;
-            width: 100%;
-        }
-
-        /* Kontrol Paneli (Filtreler) */
-        .controls {
-            background-color: #ffffff;
-            padding: 15px;
-            text-align: center;
-            box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 15px;
-            flex-wrap: wrap;
-        }
-
-        .controls label {
-            font-weight: bold;
-            margin-right: 5px;
-            font-size: 1.1em;
-        }
-
-        .controls select {
-            padding: 10px 15px;
-            border-radius: 8px;
-            border: 1px solid #ccc;
-            font-size: 1em;
-            background-color: #f8f9fa;
-            cursor: pointer;
-            transition: border-color 0.2s;
-        }
-
-        .controls select:hover {
-            border-color: #007bff;
-        }
-        
-        /* ✨ Gemini API Butonu */
-        #analyze-button {
-            padding: 10px 20px;
-            font-size: 1em;
-            font-weight: bold;
-            color: #fff;
-            background: linear-gradient(45deg, #6a11cb 0%, #2575fc 100%);
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-
-        #analyze-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-        }
-        
-        #analyze-button:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
-
-        /* Harita üzerindeki Popup Stilleri */
-        .leaflet-popup-content-wrapper {
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-        }
-
-        .leaflet-popup-content {
-            font-size: 14px;
-            line-height: 1.6;
-        }
-
-        .leaflet-popup-content b {
-            color: #0056b3;
-        }
-
-        /* Legend (Gösterim) Stilleri */
-        .legend {
-            padding: 10px;
-            font: 14px Arial, Helvetica, sans-serif;
-            background: rgba(255,255,255,0.9);
-            box-shadow: 0 0 15px rgba(0,0,0,0.2);
-            border-radius: 8px;
-            line-height: 24px;
-        }
-
-        .legend h4 { margin: 0 0 8px; text-align: center; }
-        .legend i { width: 18px; height: 18px; float: left; margin-right: 8px; opacity: 0.9; border-radius: 50%; border: 1px solid #aaa; }
-
-        /* Analiz Sonuçları Modalı */
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.6);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.3s, visibility 0.3s;
-        }
-
-        .modal-overlay.visible {
-            opacity: 1;
-            visibility: visible;
-        }
-
-        .modal-content {
-            background: #fff;
-            padding: 25px 30px;
-            border-radius: 12px;
-            width: 90%;
-            max-width: 600px;
-            max-height: 80vh;
-            overflow-y: auto;
-            transform: scale(0.9);
-            transition: transform 0.3s;
-        }
-        
-        .modal-overlay.visible .modal-content {
-            transform: scale(1);
-        }
-
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 15px;
-            margin-bottom: 15px;
-        }
-
-        .modal-header h2 {
-            margin: 0;
-            font-size: 1.5em;
-            color: #003d7a;
-        }
-
-        .close-button {
-            background: none;
-            border: none;
-            font-size: 2em;
-            cursor: pointer;
-            color: #888;
-        }
-        
-        .modal-body h3 {
-            color: #007bff;
-            margin-top: 20px;
-            border-bottom: 2px solid #f0f0f0;
-            padding-bottom: 5px;
-        }
-
-        /* Yükleniyor Animasyonu */
-        .loader {
-            border: 5px solid #f3f3f3;
-            border-top: 5px solid #3498db;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 20px auto;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-    </style>
+    <!-- Leaflet.js (Harita için) kütüphanelerini ekliyoruz -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    
+    <!-- Tailwind CSS'i ve modern bir fontu ekliyoruz -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Modülerleştirilmiş CSS dosyası -->
+    <link rel="stylesheet" href="css/style.css">
 </head>
-<body>
+<body class="p-4 sm:p-6 md:p-8">
 
-    <div class="header">
-        <h1>Kamunun Nabzı</h1>
-        <p>Bakanlık Çalışmaları İçin Sosyal Medya Hassasiyet Haritası</p>
-    </div>
+<div class="max-w-7xl mx-auto space-y-6">
 
-    <div id="map"></div>
-
-    <div class="controls">
-        <label for="hashtag-filter">İncelenecek Gündem:</label>
-        <select id="hashtag-filter">
-            <option value="all">Tüm Gündemler</option>
-        </select>
-        <button id="analyze-button" disabled>✨ Gündemi Analiz Et</button>
-    </div>
-    
-    <!-- Gemini Analiz Sonuçları için Modal -->
-    <div id="analysis-modal" class="modal-overlay">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 id="modal-title">Analiz Sonuçları</h2>
-                <button id="close-modal" class="close-button">&times;</button>
+    <!-- 1. Başlık ve Gönderi Alanı -->
+    <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <!-- Sol Taraf: Orijinal Gönderi Kartı -->
+        <div class="lg:col-span-3 bg-white p-6 rounded-2xl custom-shadow cursor-pointer hover:shadow-lg transition-shadow duration-300" onclick="window.open('https://sosyal.teknofest.app/@cevsehbak/115101351870994094', '_blank')">
+            <div class="flex items-center mb-4">
+                <img src="assets/images/bakanlik_pp.png" alt="Profil Resmi" class="w-12 h-12 rounded-full mr-4 object-cover border border-gray-200">
+                <div>
+                    <p class="font-bold text-lg text-slate-800">Çevre, Şehircilik, İklim Değ. Bakanlığı ÇŞİDB</p>
+                    <p class="text-sm text-slate-500">@cevsehbak · 27 Ağu</p>
+                </div>
             </div>
-            <div id="modal-body" class="modal-body">
-                <!-- Sonuçlar buraya gelecek -->
+            <div class="space-y-4">
+                <p class="text-slate-700 leading-relaxed">
+                    1.231 adet atık su arıtma tesisi ile, 2002'de %35 olan atık su arıtma hizmeti verilen belediye nüfusu oranını 2025'te %91.1'e çıkardığımızı biliyor musunuz❓
+                </p>
+                <img src="assets/images/bakanlik.png" alt="Bakanlık Atık Su Arıtma Tesisleri" class="rounded-xl w-full object-cover">
+                <div class="flex items-center space-x-6 text-slate-600 pt-2 text-sm">
+                    <span class="flex items-center font-medium">
+                        <svg class="w-5 h-5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 5.523-4.477 10-10 10S1 17.523 1 12 5.477 2 11 2s10 4.477 10 10z"></path></svg>
+                        3
+                    </span>
+                    <span class="flex items-center font-medium">
+                       <svg class="w-5 h-5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h5M7 9l4-4 4 4M4 14h5v5M7 15l4 4 4-4"></path></svg>
+                        10
+                    </span>
+                     <span class="flex items-center font-medium">
+                        <svg class="w-5 h-5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
+                        71
+                    </span>
+                    <span class="flex items-center font-medium">
+                       <svg class="w-5 h-5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                        785
+                    </span>
+                </div>
+            </div>
+        </div>
+        <!-- Sağ Taraf: Genel Etki Puanı -->
+        <div class="lg:col-span-2 bg-white p-6 rounded-2xl custom-shadow flex flex-col justify-center items-center text-center">
+            <p class="text-lg font-semibold text-slate-600 mb-2">Genel Duygu Skoru</p>
+            <div class="relative w-40 h-40">
+                <svg class="w-full h-full" viewBox="0 0 36 36">
+                    <path class="text-slate-200" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke-width="3.8"></path>
+                    <path class="text-green-500" stroke-dasharray="67, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke-width="3.8" stroke-linecap="round"></path>
+                </svg>
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <span class="text-4xl font-extrabold text-slate-800">67%</span>
+                </div>
+            </div>
+            <p class="text-green-600 font-semibold mt-2">Pozitif</p>
+            <p class="text-sm text-slate-500 mt-4 italic max-w-xs">
+                "Yorumlarda bakanlık çalışmalarını takdir ile birlikte Gelibolu'daki sorunlara da dikkat çekiliyor."
+            </p>
+        </div>
+    </div>
+
+    <!-- 2. Kilit Metrikler -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="bg-white p-5 rounded-2xl custom-shadow text-center">
+            <p class="text-4xl font-extrabold text-slate-800">1,254</p>
+            <p class="text-sm font-medium text-slate-500 mt-1">Toplam Yorum</p>
+        </div>
+        <div class="bg-white p-5 rounded-2xl custom-shadow text-center">
+            <p class="text-4xl font-extrabold text-slate-800">8,732</p>
+            <p class="text-sm font-medium text-slate-500 mt-1">Yorumlara Gelen Toplam Beğeni</p>
+        </div>
+        <div class="bg-white p-5 rounded-2xl custom-shadow text-center">
+            <p class="text-4xl font-extrabold text-green-600">67%</p>
+            <p class="text-sm font-medium text-slate-500 mt-1">Pozitif Yorum Oranı</p>
+        </div>
+        <div class="bg-white p-5 rounded-2xl custom-shadow text-center">
+            <p class="text-4xl font-extrabold text-red-600">33%</p>
+            <p class="text-sm font-medium text-slate-500 mt-1">Negatif Yorum Oranı</p>
+        </div>
+    </div>
+
+    <!-- 3. Detaylı Analiz Grafikleri -->
+    <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <div class="lg:col-span-2 bg-white p-6 rounded-2xl custom-shadow">
+            <h3 class="text-lg font-bold text-slate-800 mb-4">Duygu Dağılımı</h3>
+            <div class="h-64"><canvas id="sentimentDoughnutChart"></canvas></div>
+        </div>
+        <div class="lg:col-span-3 bg-white p-6 rounded-2xl custom-shadow">
+            <h3 class="text-lg font-bold text-slate-800 mb-4">Yorum Akışı (İlk 48 Saat)</h3>
+            <div class="h-64"><canvas id="commentTimelineChart"></canvas></div>
+        </div>
+    </div>
+
+    <!-- YENİ BÖLÜM: Coğrafi Dağılım Haritası -->
+    <div class="bg-white p-6 rounded-2xl custom-shadow">
+        <h3 class="text-lg font-bold text-slate-800 mb-4">Türkiye Etkileşim Haritası (Duygu Yoğunluğu)</h3>
+        <div id="map" class="h-96 md:h-[500px] w-full rounded-lg z-10"></div>
+    </div>
+
+
+    <!-- 4. Niteliksel Analiz -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-white p-6 rounded-2xl custom-shadow">
+            <h3 class="text-lg font-bold text-slate-800 mb-4">En Çok Etkileşim Alan Yorumlar</h3>
+            <div class="space-y-5">
+                <!-- Yorum 1 - Pozitif -->
+                <div class="flex items-start">
+                    <img src="https://i.pravatar.cc/40?u=ahmet34" class="w-10 h-10 rounded-full mr-3 mt-1" alt="Avatar">
+                    <div class="flex-1">
+                        <p class="font-semibold text-slate-800">Ahmet Yıldırım</p>
+                        <p class="text-sm text-slate-600">@cevsehbak Yaşasın yeşil Vatan yaşasın gelecek nesil durmak yok temiz Türkiye ekonomik ve ekolojik refahı tamamlamış Türkiye hedefine tam gaz.</p>
+                        <div class="flex items-center mt-2 text-sm">
+                            <span class="text-slate-500 mr-3">❤️ 1,892 Beğeni</span>
+                            <span class="text-xs font-semibold bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Pozitif</span>
+                        </div>
+                    </div>
+                </div>
+                <!-- Yorum 2 - Negatif -->
+                <div class="flex items-start">
+                    <img src="https://i.pravatar.cc/40?u=nur_meric" class="w-10 h-10 rounded-full mr-3 mt-1" alt="Avatar">
+                    <div class="flex-1">
+                        <p class="font-semibold text-slate-800">Nur Meriç</p>
+                        <p class="text-sm text-slate-600">@cevsehbak Gelibolu'da atık su arıtma tesisi yok, bu nedenle deniz suyuna karışan kanalizasyon ve atık sular nedeniyle her yaz denize girenler hastalanıyor. Daha da önemlisi alt yapı çok eski olduğu için içme suyuna karışan atık su nedeniyle geçdiğimiz yaz tüm ilçede salgın yaşandı. Umarim bu sorunlar en kisa zamanda çözülür.</p>
+                         <div class="flex items-center mt-2 text-sm">
+                            <span class="text-slate-500 mr-3">❤️ 1,245 Beğeni</span>
+                            <span class="text-xs font-semibold bg-red-100 text-red-700 px-2 py-0.5 rounded-full">Negatif</span>
+                        </div>
+                    </div>
+                </div>
+                 <!-- Yorum 3 - Pozitif -->
+                 <div class="flex items-start">
+                    <img src="https://i.pravatar.cc/40?u=sevda55" class="w-10 h-10 rounded-full mr-3 mt-1" alt="Avatar">
+                    <div class="flex-1">
+                        <p class="font-semibold text-slate-800">Sevda Özdemir</p>
+                        <p class="text-sm text-slate-600">@cevsehbak Çevre ve Şehircilik Bakanlığımızın çalışmalarinı tebrik ediyor ve başarılarınızın devamını diliyorum 👏👏🇹🇷🇹🇷 Darısı Gelibolu beleyisinin başina...🙏</p>
+                         <div class="flex items-center mt-2 text-sm">
+                            <span class="text-slate-500 mr-3">❤️ 980 Beğeni</span>
+                            <span class="text-xs font-semibold bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Pozitif</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white p-6 rounded-2xl custom-shadow">
+            <h3 class="text-lg font-bold text-slate-800 mb-4">Gemini AI ile Tema Analizi</h3>
+            <div class="space-y-3">
+                <div class="p-3 bg-slate-50 rounded-lg">
+                    <p class="font-semibold text-slate-700">1. Vatanseverlik ve Milli Duygu</p>
+                    <p class="text-sm text-slate-500">Yorumların bir kısmında milli simgeler ve vatansever ifadeler öne çıkıyor.</p>
+                </div>
+                <div class="p-3 bg-slate-50 rounded-lg">
+                    <p class="font-semibold text-slate-700">2. Gelibolu İlçesi Sorunları</p>
+                    <p class="text-sm text-slate-500">Birden fazla yorumda Gelibolu ilçesindeki altyapı ve çevre sorunlarına dikkat çekiliyor.</p>
+                </div>
+                <div class="p-3 bg-slate-50 rounded-lg">
+                    <p class="font-semibold text-slate-700">3. Bakanlık Çalışmalarına Takdir</p>
+                    <p class="text-sm text-slate-500">Bakanlığın çevre ve şehircilik alanındaki çalışmaları takdir ediliyor.</p>
+                </div>
+            </div>
+            <div class="mt-6 p-4 bg-slate-50 rounded-lg flex flex-wrap gap-x-4 gap-y-2 items-center justify-center">
+                <span class="text-4xl font-bold text-green-600">Yaşasın</span>
+                <span class="text-3xl font-bold text-indigo-600">Gelibolu</span>
+                <span class="text-2xl font-semibold text-sky-600">Türkiye</span>
+                <span class="text-lg text-red-500">atık su</span>
+                <span class="text-2xl font-semibold text-green-600">Tebrik</span>
+                <span class="text-3xl font-bold text-indigo-600">Yeşil</span>
+                <span class="text-xl font-semibold text-sky-600">Çözüm</span>
+                <span class="text-lg text-slate-500">alt yapı</span>
             </div>
         </div>
     </div>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <!-- 5. Eylem ve Raporlama Alanı -->
+    <div class="bg-white p-6 rounded-2xl custom-shadow flex flex-col sm:flex-row gap-4">
+        <button class="w-full text-center px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-opacity-75 transition duration-200">
+            ✨ Resmi Yanıt Taslağı Oluştur
+        </button>
+        <button class="w-full text-center px-6 py-3 bg-slate-200 text-slate-800 font-semibold rounded-lg shadow-md hover:bg-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-opacity-75 transition duration-200">
+            📄 Rapor Olarak Dışa Aktar
+        </button>
+    </div>
+</div>
 
-    <script>
-        // --- GÜNCELLENMİŞ SAHTE VERİ SETİ ---
-        const mockData = [
-            // #YeniMüfredat
-            { "id": 1, "hashtag": "#YeniMüfredat", "text": "Yeni müfredat çocukların gelişimine büyük katkı sağlayacak, harika!", "timestamp": "2025-08-25T10:00:00", "location": [41.0082, 28.9784], "sentiment": "pozitif" }, // İstanbul
-            { "id": 4, "hashtag": "#YeniMüfredat", "text": "Bu müfredatın bazı kısımları hakkında endişelerim var. Daha şeffaf olunmalı.", "timestamp": "2025-08-26T09:15:00", "location": [37.0665, 37.3783], "sentiment": "negatif" }, // Gaziantep
-            { "id": 7, "hashtag": "#YeniMüfredat", "text": "#YeniMüfredat hakkında yapılan sunumu izledim. Sonuçlarını zamanla göreceğiz.", "timestamp": "2025-08-27T18:00:00", "location": [41.2928, 36.3313], "sentiment": "nötr" }, // Samsun
-            { "id": 10, "hashtag": "#YeniMüfredat", "text": "Eğitimde atılan bu adımı destekliyorum. Öğretmen görüşleri alınmış mı merak ediyorum.", "timestamp": "2025-08-29T11:00:00", "location": [39.9097, 41.2755], "sentiment": "pozitif" }, // Erzurum
+<!-- Modülerleştirilmiş JavaScript dosyaları -->
+<script src="js/data.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/map.js"></script>
+<script src="js/main.js"></script>
 
-            // #SağlıktaDönüşüm
-            { "id": 2, "hashtag": "#SağlıktaDönüşüm", "text": "Randevu sistemindeki sorunlar hala devam ediyor. #SağlıktaDönüşüm bu mu?", "timestamp": "2025-08-25T11:30:00", "location": [39.9334, 32.8597], "sentiment": "negatif" }, // Ankara
-            { "id": 6, "hashtag": "#SağlıktaDönüşüm", "text": "Yeni şehir hastaneleri gerçekten çok modern ve donanımlı. Teşekkürler.", "timestamp": "2025-08-27T16:45:00", "location": [37.8713, 32.4846], "sentiment": "pozitif" }, // Konya
-            { "id": 8, "hashtag": "#SağlıktaDönüşüm", "text": "İlaçlara erişimde zaman zaman sıkıntılar yaşanıyor, bu konu çözülmeli.", "timestamp": "2025-08-28T10:20:00", "location": [36.8969, 30.7133], "sentiment": "negatif" }, // Antalya
-            
-            // #YerliOtomobilTOGG
-            { "id": 3, "hashtag": "#YerliOtomobilTOGG", "text": "TOGG'un yeni modeli hakkında bir haber okudum.", "timestamp": "2025-08-25T12:00:00", "location": [38.4237, 27.1428], "sentiment": "nötr" }, // İzmir
-            { "id": 5, "hashtag": "#YerliOtomobilTOGG", "text": "Gurur duyduk! #YerliOtomobilTOGG yollarda görmek çok güzel. Tasarımı harika.", "timestamp": "2025-08-26T14:00:00", "location": [40.1885, 29.0609], "sentiment": "pozitif" }, // Bursa
-            { "id": 9, "hashtag": "#YerliOtomobilTOGG", "text": "TOGG'un fiyatı konusunda eleştiriler var. Daha ulaşılabilir olmalı.", "timestamp": "2025-08-28T13:00:00", "location": [37.9100, 40.2336], "sentiment": "negatif" }  // Diyarbakır
-        ];
-
-        // --- DOM ELEMENTLERİ ---
-        const map = L.map('map').setView([39.0, 35.0], 6);
-        const hashtagFilter = document.getElementById('hashtag-filter');
-        const analyzeButton = document.getElementById('analyze-button');
-        const modalOverlay = document.getElementById('analysis-modal');
-        const modalTitle = document.getElementById('modal-title');
-        const modalBody = document.getElementById('modal-body');
-        const closeModalButton = document.getElementById('close-modal');
-        let tweetLayer = L.layerGroup().addTo(map);
-
-        // --- HARİTA AYARLARI ---
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        }).addTo(map);
-
-        const sentimentColors = { "pozitif": "#28a745", "negatif": "#dc3545", "nötr": "#ffc107" };
-
-        const legend = L.control({position: 'bottomright'});
-        legend.onAdd = function (map) {
-            const div = L.DomUtil.create('div', 'info legend');
-            const sentiments = ['pozitif', 'negatif', 'nötr'];
-            div.innerHTML += '<h4>Duygu Durumu</h4>';
-            sentiments.forEach(s => {
-                div.innerHTML += `<i style="background:${sentimentColors[s]}"></i> ${s.charAt(0).toUpperCase() + s.slice(1)}<br>`;
-            });
-            return div;
-        };
-        legend.addTo(map);
-        
-        // --- GEMINI API FONKSİYONU ---
-        async function callGeminiAPI(prompt) {
-            const apiKey = ""; // Canvas ortamı bunu otomatik olarak yönetir.
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
-
-            const payload = {
-                contents: [{ parts: [{ text: prompt }] }],
-            };
-
-            try {
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                if (!response.ok) {
-                    throw new Error(`API hatası: ${response.statusText}`);
-                }
-                const result = await response.json();
-                return result.candidates[0].content.parts[0].text;
-            } catch (error) {
-                console.error("Gemini API çağrısı başarısız:", error);
-                return "Analiz sırasında bir hata oluştu. Lütfen daha sonra tekrar deneyin.";
-            }
-        }
-        
-        // --- UYGULAMA MANTIĞI ---
-        function updateMap(hashtag = 'all') {
-            tweetLayer.clearLayers();
-            const filteredData = (hashtag === 'all')
-                ? mockData
-                : mockData.filter(tweet => tweet.hashtag === hashtag);
-
-            filteredData.forEach(tweet => {
-                const [lat, lon] = tweet.location;
-                const circle = L.circleMarker([lat, lon], {
-                    radius: 8,
-                    fillColor: sentimentColors[tweet.sentiment],
-                    color: "#fff", weight: 2, opacity: 1, fillOpacity: 0.85
-                }).addTo(tweetLayer);
-                
-                circle.bindPopup(`<b>Gündem:</b> ${tweet.hashtag}<br><b>Duygu:</b> ${tweet.sentiment}<hr style="margin: 5px 0;"><em>"${tweet.text}"</em>`);
-            });
-        }
-        
-        function populateHashtags() {
-            const hashtags = [...new Set(mockData.map(tweet => tweet.hashtag))];
-            hashtags.forEach(tag => {
-                const option = document.createElement('option');
-                option.value = tag; option.textContent = tag;
-                hashtagFilter.appendChild(option);
-            });
-        }
-
-        async function handleAnalysis() {
-            const selectedHashtag = hashtagFilter.value;
-            if (selectedHashtag === 'all') return;
-
-            modalTitle.textContent = `${selectedHashtag} Analizi`;
-            modalBody.innerHTML = '<div class="loader"></div>';
-            modalOverlay.classList.add('visible');
-
-            const relatedTweets = mockData
-                .filter(tweet => tweet.hashtag === selectedHashtag)
-                .map(tweet => `- "${tweet.text}" (Duygu: ${tweet.sentiment})`)
-                .join('\n');
-
-            const prompt = `
-                Bir sosyal politika analisti olarak, Türkiye'deki bir bakanlık çalışması hakkındaki aşağıdaki sosyal medya paylaşımlarını analiz et.
-                Vatandaşların genel eğilimlerini, endişelerini ve olumlu buldukları noktaları özetle.
-                Sonucunda, bakanlık için net ve uygulanabilir tavsiyeler sun. Cevabını Türkçe ve Markdown formatında, aşağıdaki başlıkları kullanarak oluştur:
-
-                Paylaşımlar:
-                ${relatedTweets}
-
-                ---
-                ### Genel Duygu Özeti
-                [Buraya halkın genel duygu durumunu (pozitif, negatif, karışık) ve bunun ana nedenlerini açıklayan bir paragraf yaz.]
-
-                ### Öne Çıkan Konular
-                [Buraya insanların tartıştığı 2-3 ana konuyu madde imleri ile listele.]
-
-                ### Bakanlık İçin Eylem Önerileri
-                [Buraya halkın geri bildirimlerine dayalı olarak bakanlığın atabileceği 2 somut ve uygulanabilir adımı madde imleri ile listele.]
-            `;
-            
-            const analysisResult = await callGeminiAPI(prompt);
-            
-            // Markdown'ı basit HTML'e çevirelim
-            let htmlResult = analysisResult
-                .replace(/### (.*)/g, '<h3>$1</h3>')
-                .replace(/\* (.*)/g, '<ul><li>$1</li></ul>')
-                .replace(/<\/ul>\n<ul>/g, ''); // Bitişik listeleri birleştir
-
-            modalBody.innerHTML = htmlResult;
-        }
-
-        // --- OLAY DİNLEYİCİLERİ (EVENT LISTENERS) ---
-        hashtagFilter.addEventListener('change', () => {
-            updateMap(hashtagFilter.value);
-            analyzeButton.disabled = (hashtagFilter.value === 'all');
-        });
-
-        analyzeButton.addEventListener('click', handleAnalysis);
-        closeModalButton.addEventListener('click', () => modalOverlay.classList.remove('visible'));
-        modalOverlay.addEventListener('click', (e) => {
-            if (e.target === modalOverlay) {
-                modalOverlay.classList.remove('visible');
-            }
-        });
-
-        document.addEventListener('DOMContentLoaded', () => {
-            populateHashtags();
-            updateMap();
-        });
-    </script>
 </body>
 </html>

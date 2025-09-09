@@ -1,0 +1,24 @@
+/* Sayfanın temel yazı tipini ve arkaplanını ayarlıyoruz */
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #f1f5f9; /* Tailwind'in bg-slate-100 rengi */
+}
+/* Kartların daha yumuşak gölgelere sahip olmasını sağlıyoruz */
+.custom-shadow {
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+}
+/* Leaflet harita ve legend stilleri */
+.leaflet-container {
+    background: #f1f5f9;
+}
+.legend {
+    line-height: 18px;
+    color: #555;
+}
+.legend i {
+    width: 18px;
+    height: 18px;
+    float: left;
+    margin-right: 8px;
+    opacity: 0.9;
+}

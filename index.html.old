@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analiz Ekranı: Gönderi Etki Raporu</title>
+    <!-- Gerekli JavaScript kütüphanelerini ekliyoruz (Chart.js versiyonu sabitlendi) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
+    <!-- Leaflet.js (Harita için) kütüphanelerini ekliyoruz -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    
+    <!-- Tailwind CSS'i ve modern bir fontu ekliyoruz -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* Sayfanın temel yazı tipini ve arkaplanını ayarlıyoruz */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f1f5f9; /* Tailwind'in bg-slate-100 rengi */
+        }
+        /* Kartların daha yumuşak gölgelere sahip olmasını sağlıyoruz */
+        .custom-shadow {
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+        /* Leaflet harita ve legend stilleri */
+        .leaflet-container {
+            background: #f1f5f9;
+        }
+        .legend {
+            line-height: 18px;
+            color: #555;
+        }
+        .legend i {
+            width: 18px;
+            height: 18px;
+            float: left;
+            margin-right: 8px;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-6 md:p-8">
+
+<div class="max-w-7xl mx-auto space-y-6">
+
+    <!-- 1. Başlık ve Gönderi Alanı -->
+    <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <!-- Sol Taraf: Orijinal Gönderi Kartı -->
+        <div class="lg:col-span-3 bg-white p-6 rounded-2xl custom-shadow">
+            <div class="flex items-center mb-4">
+                <img src="bakanlik_pp.png" alt="Profil Resmi" class="w-12 h-12 rounded-full mr-4 object-cover border border-gray-200">
+                <div>
+                    <p class="font-bold text-lg text-slate-800">Çevre, Şehircilik, İklim Değ. Bakanlığı ÇŞİDB</p>
+                    <p class="text-sm text-slate-500">@cevsehbak · 27 Ağu</p>
+                </div>
+            </div>
+            <div class="space-y-4">
+                <p class="text-slate-700 leading-relaxed">
+                    1.231 adet atık su arıtma tesisi ile, 2002'de %35 olan atık su arıtma hizmeti verilen belediye nüfusu oranını 2025'te %91.1'e çıkardığımızı biliyor musunuz❓
+                </p>
+                <img src="bakanlik.png" alt="Bakanlık Atık Su Arıtma Tesisleri" class="rounded-xl w-full object-cover">
+                <div class="flex items-center space-x-6 text-slate-600 pt-2 text-sm">
+                    <span class="flex items-center font-medium">
+                        <svg class="w-5 h-5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 5.523-4.477 10-10 10S1 17.523 1 12 5.477 2 11 2s10 4.477 10 10z"></path></svg>
+                        3
+                    </span>
+                    <span class="flex items-center font-medium">
+                       <svg class="w-5 h-5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h5M7 9l4-4 4 4M4 14h5v5M7 15l4 4 4-4"></path></svg>
+                        10
+                    </span>
+                     <span class="flex items-center font-medium">
+                        <svg class="w-5 h-5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
+                        71
+                    </span>
+                    <span class="flex items-center font-medium">
+                       <svg class="w-5 h-5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                        785
+                    </span>
+                </div>
+            </div>
+        </div>
+        <!-- Sağ Taraf: Genel Etki Puanı -->
+        <div class="lg:col-span-2 bg-white p-6 rounded-2xl custom-shadow flex flex-col justify-center items-center text-center">
+            <p class="text-lg font-semibold text-slate-600 mb-2">Genel Duygu Skoru</p>
+            <div class="relative w-40 h-40">
+                <svg class="w-full h-full" viewBox="0 0 36 36">
+                    <path class="text-slate-200" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke-width="3.8"></path>
+                    <path class="text-green-500" stroke-dasharray="82, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke-width="3.8" stroke-linecap="round"></path>
+                </svg>
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <span class="text-4xl font-extrabold text-slate-800">82%</span>
+                </div>
+            </div>
+            <p class="text-green-600 font-semibold mt-2">Pozitif</p>
+            <p class="text-sm text-slate-500 mt-4 italic max-w-xs">
+                "Yorumların geneli hükümetin çevre politikalarına ve yatırımlarına yönelik olumlu görüşler içeriyor."
+            </p>
+        </div>
+    </div>
+
+    <!-- 2. Kilit Metrikler -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="bg-white p-5 rounded-2xl custom-shadow text-center">
+            <p class="text-4xl font-extrabold text-slate-800">1,254</p>
+            <p class="text-sm font-medium text-slate-500 mt-1">Toplam Yorum</p>
+        </div>
+        <div class="bg-white p-5 rounded-2xl custom-shadow text-center">
+            <p class="text-4xl font-extrabold text-slate-800">8,732</p>
+            <p class="text-sm font-medium text-slate-500 mt-1">Yorumlara Gelen Toplam Beğeni</p>
+        </div>
+        <div class="bg-white p-5 rounded-2xl custom-shadow text-center">
+            <p class="text-4xl font-extrabold text-green-600">75%</p>
+            <p class="text-sm font-medium text-slate-500 mt-1">Pozitif Yorum Oranı</p>
+        </div>
+        <div class="bg-white p-5 rounded-2xl custom-shadow text-center">
+            <p class="text-4xl font-extrabold text-red-600">21%</p>
+            <p class="text-sm font-medium text-slate-500 mt-1">Negatif Yorum Oranı</p>
+        </div>
+    </div>
+
+    <!-- 3. Detaylı Analiz Grafikleri -->
+    <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <div class="lg:col-span-2 bg-white p-6 rounded-2xl custom-shadow">
+            <h3 class="text-lg font-bold text-slate-800 mb-4">Duygu Dağılımı</h3>
+            <div class="h-64"><canvas id="sentimentDoughnutChart"></canvas></div>
+        </div>
+        <div class="lg:col-span-3 bg-white p-6 rounded-2xl custom-shadow">
+            <h3 class="text-lg font-bold text-slate-800 mb-4">Yorum Akışı (İlk 48 Saat)</h3>
+            <div class="h-64"><canvas id="commentTimelineChart"></canvas></div>
+        </div>
+    </div>
+
+    <!-- YENİ BÖLÜM: Coğrafi Dağılım Haritası -->
+    <div class="bg-white p-6 rounded-2xl custom-shadow">
+        <h3 class="text-lg font-bold text-slate-800 mb-4">Türkiye Etkileşim Haritası (Duygu Yoğunluğu)</h3>
+        <div id="map" class="h-96 md:h-[500px] w-full rounded-lg z-10"></div>
+    </div>
+
+
+    <!-- 4. Niteliksel Analiz -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-white p-6 rounded-2xl custom-shadow">
+            <h3 class="text-lg font-bold text-slate-800 mb-4">En Çok Etkileşim Alan Yorumlar</h3>
+            <div class="space-y-5">
+                <!-- Yorum 1 -->
+                <div class="flex items-start">
+                    <img src="https://i.pravatar.cc/40?u=ayse" class="w-10 h-10 rounded-full mr-3 mt-1" alt="Avatar">
+                    <div class="flex-1">
+                        <p class="font-semibold text-slate-800">Ayşe Yılmaz</p>
+                        <p class="text-sm text-slate-600">Yapılan hizmetler için teşekkür ederiz, ülkemizin böyle yatırımlara ihtiyacı var.</p>
+                        <div class="flex items-center mt-2 text-sm">
+                            <span class="text-slate-500 mr-3">❤️ 1,892 Beğeni</span>
+                            <span class="text-xs font-semibold bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Pozitif</span>
+                        </div>
+                    </div>
+                </div>
+                <!-- Yorum 2 -->
+                <div class="flex items-start">
+                    <img src="https://i.pravatar.cc/40?u=mehmet" class="w-10 h-10 rounded-full mr-3 mt-1" alt="Avatar">
+                    <div class="flex-1">
+                        <p class="font-semibold text-slate-800">Mehmet Öztürk</p>
+                        <p class="text-sm text-slate-600">Rakamlar güzel ama bizim ilçedeki arıtma tesisi hala bitmedi, umarım en kısa zamanda tamamlanır.</p>
+                         <div class="flex items-center mt-2 text-sm">
+                            <span class="text-slate-500 mr-3">❤️ 1,245 Beğeni</span>
+                            <span class="text-xs font-semibold bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">Nötr</span>
+                        </div>
+                    </div>
+                </div>
+                 <!-- Yorum 3 -->
+                 <div class="flex items-start">
+                    <img src="https://i.pravatar.cc/40?u=zeynep" class="w-10 h-10 rounded-full mr-3 mt-1" alt="Avatar">
+                    <div class="flex-1">
+                        <p class="font-semibold text-slate-800">Zeynep Kaya</p>
+                        <p class="text-sm text-slate-600">Çevreye yapılan her yatırım geleceğe yatırımdır. Emeği geçen herkese teşekkürler.</p>
+                         <div class="flex items-center mt-2 text-sm">
+                            <span class="text-slate-500 mr-3">❤️ 980 Beğeni</span>
+                            <span class="text-xs font-semibold bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Pozitif</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white p-6 rounded-2xl custom-shadow">
+            <h3 class="text-lg font-bold text-slate-800 mb-4">Gemini AI ile Tema Analizi</h3>
+            <div class="space-y-3">
+                <div class="p-3 bg-slate-50 rounded-lg">
+                    <p class="font-semibold text-slate-700">1. Projelere Teşekkür ve Takdir</p>
+                    <p class="text-sm text-slate-500">Yorumların çoğunluğu yapılan hizmetlerden memnuniyetini dile getiriyor.</p>
+                </div>
+                <div class="p-3 bg-slate-50 rounded-lg">
+                    <p class="font-semibold text-slate-700">2. Yerel Proje Talepleri</p>
+                    <p class="text-sm text-slate-500">Bazı kullanıcılar kendi bölgelerindeki projelerin durumunu sorguluyor.</p>
+                </div>
+                <div class="p-3 bg-slate-50 rounded-lg">
+                    <p class="font-semibold text-slate-700">3. Çevre Bilinci</p>
+                    <p class="text-sm text-slate-500">Çevreye yapılan yatırımların önemi sıkça vurgulanıyor.</p>
+                </div>
+            </div>
+            <div class="mt-6 p-4 bg-slate-50 rounded-lg flex flex-wrap gap-x-4 gap-y-2 items-center justify-center">
+                <span class="text-4xl font-bold text-green-600">Teşekkürler</span>
+                <span class="text-3xl font-bold text-indigo-600">Yatırım</span>
+                <span class="text-2xl font-semibold text-sky-600">Hizmet</span>
+                <span class="text-lg text-slate-500">bizim ilçe?</span>
+                <span class="text-2xl font-semibold text-green-600">Çevre</span>
+                <span class="text-xl font-semibold text-indigo-600">Bravo</span>
+                <span class="text-3xl font-bold text-sky-600">Gelecek</span>
+                <span class="text-lg text-slate-500">proje</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. Eylem ve Raporlama Alanı -->
+    <div class="bg-white p-6 rounded-2xl custom-shadow flex flex-col sm:flex-row gap-4">
+        <button class="w-full text-center px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-opacity-75 transition duration-200">
+            ✨ Resmi Yanıt Taslağı Oluştur
+        </button>
+        <button class="w-full text-center px-6 py-3 bg-slate-200 text-slate-800 font-semibold rounded-lg shadow-md hover:bg-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-opacity-75 transition duration-200">
+            📄 Rapor Olarak Dışa Aktar
+        </button>
+    </div>
+</div>
+
+<script>
+    // Grafiklerin global ayarları
+    Chart.defaults.font.family = 'Inter';
+    Chart.defaults.plugins.legend.position = 'bottom';
+
+    // Duygu Dağılımı Grafiği (Doughnut)
+    const doughnutCtx = document.getElementById('sentimentDoughnutChart');
+    if (doughnutCtx) {
+        new Chart(doughnutCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Pozitif', 'Negatif', 'Nötr'],
+                datasets: [{
+                    label: 'Yorum Sayısı',
+                    data: [940, 263, 51], // %75, %21, %4 oranlarına denk gelen sayılar
+                    backgroundColor: ['#22c55e' /* green-500 */, '#ef4444' /* red-500 */, '#64748b' /* slate-500 */],
+                    borderColor: '#ffffff',
+                    borderWidth: 4,
+                    hoverOffset: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '70%',
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed !== null) {
+                                    const total = context.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((context.parsed / total) * 100).toFixed(0);
+                                    label += `${context.parsed} Yorum (${percentage}%)`;
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Yorum Akışı Zaman Çizgisi Grafiği (Line)
+    const timelineCtx = document.getElementById('commentTimelineChart');
+    if (timelineCtx) {
+        new Chart(timelineCtx, {
+            type: 'line',
+            data: {
+                labels: ['0h', '2h', '4h', '6h', '8h', '12h', '24h', '36h', '48h'],
+                datasets: [{
+                    label: 'Pozitif Yorumlar',
+                    data: [15, 50, 80, 120, 150, 110, 200, 55, 30],
+                    borderColor: '#22c55e',
+                    backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    pointBackgroundColor: '#22c55e',
+                    pointRadius: 0,
+                    pointHoverRadius: 6,
+                }, {
+                    label: 'Negatif Yorumlar',
+                    data: [5, 20, 30, 50, 80, 50, 90, 25, 10],
+                    borderColor: '#ef4444',
+                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    pointBackgroundColor: '#ef4444',
+                    pointRadius: 0,
+                    pointHoverRadius: 6,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: '#e2e8f0' // slate-200
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                    }
+                },
+                interaction: {
+                    intersect: false,
+                    mode: 'index',
+                },
+            }
+        });
+    }
+
+    // Türkiye Etkileşim Haritası (Leaflet)
+    const mapContainer = document.getElementById('map');
+    if (mapContainer) {
+        console.log("Harita başlatılıyor...");
+        
+        // Harita konteynerinin boyutlarını kontrol edelim
+        console.log("Harita konteyneri boyutları:", mapContainer.offsetWidth, "x", mapContainer.offsetHeight);
+        
+        const map = L.map('map', {
+            dragging: false, // Kaydırmayı devre dışı bırak
+            scrollWheelZoom: false, // Fare tekerleği ile yakınlaştırmayı devre dışı bırak
+            doubleClickZoom: false, // Çift tıklama ile yakınlaştırmayı devre dışı bırak
+            touchZoom: false, // Dokunmatik yakınlaştırmayı devre dışı bırak
+            zoomControl: false // Yakınlaştırma kontrollerini kaldır
+        }).setView([39.0, 35.0], 6);
+
+        map.attributionControl.setPrefix('<a href="https://leafletjs.com" title="A JS library for interactive maps">Leaflet</a>');
+        
+        // Harita altlığı
+        const baseMap = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 20
+        }).addTo(map);
+        
+        // Debug - haritanın doğru yüklenip yüklenmediğini kontrol edelim
+        console.log("Harita altlığı eklendi");
+        
+        // DÜZELTME: Veri setindeki il isimleri, GeoJSON'daki Türkçe karakter içermeyen isimlerle eşleştirildi.
+        const sentimentData = {
+            "Adana": 0.55, "Adiyaman": 0.35, "Afyonkarahisar": 0.5, "Agri": 0.2,
+            "Amasya": 0.6, "Ankara": 0.85, "Antalya": 0.65, "Artvin": 0.7,
+            "Aydin": 0.75, "Balikesir": 0.7, "Bilecik": 0.65, "Bingol": 0.25,
+            "Bitlis": 0.22, "Bolu": 0.68, "Burdur": 0.6, "Bursa": 0.72,
+            "Canakkale": 0.8, "Cankiri": 0.4, "Corum": 0.45, "Denizli": 0.7,
+            "Diyarbakir": 0.32, "Edirne": 0.82, "Elazig": 0.4, "Erzincan": 0.42,
+            "Erzurum": 0.45, "Eskisehir": 0.81, "Gaziantep": 0.51, "Giresun": 0.72,
+            "Gumushane": 0.5, "Hakkari": 0.1, "Hatay": 0.6, "Isparta": 0.55,
+            "Mersin": 0.62, "Istanbul": 0.92, "Izmir": 0.78, "Kars": 0.3,
+            "Kastamonu": 0.48, "Kayseri": 0.58, "Kirklareli": 0.77, "Kirsehir": 0.5,
+            "Kocaeli": 0.73, "Konya": 0.40, "Kutahya": 0.52, "Malatya": 0.48,
+            "Manisa": 0.68, "Kahramanmaras": 0.53, "Mardin": 0.33, "Mugla": 0.79,
+            "Mus": 0.28, "Nevsehir": 0.65, "Nigde": 0.45, "Ordu": 0.75,
+            "Rize": 0.8, "Sakarya": 0.69, "Samsun": 0.68, "Siirt": 0.25,
+            "Sinop": 0.7, "Sivas": 0.4, "Tekirdag": 0.78, "Tokat": 0.5,
+            "Trabzon": 0.88, "Tunceli": 0.55, "Sanliurfa": 0.3, "Usak": 0.58,
+            "Van": 0.29, "Yozgat": 0.38, "Zonguldak": 0.59, "Aksaray": 0.49,
+            "Bayburt": 0.41, "Karaman": 0.52, "Kirikkale": 0.53, "Batman": 0.31,
+            "Sirnak": 0.15, "Bartin": 0.66, "Ardahan": 0.33, "Igdir": 0.26,
+            "Yalova": 0.76, "Karabuk": 0.61, "Kilis": 0.47, "Osmaniye": 0.54,
+            "Duzce": 0.67
+        };
+
+        function getColor(d) {
+            // Daha canlı ve net renk paleti
+            return d > 0.8 ? '#10b981' : // yeşil - pozitif
+                   d > 0.7 ? '#34d399' : // açık yeşil
+                   d > 0.6 ? '#fbbf24' : // amber - orta değer
+                   d > 0.5 ? '#f59e0b' : // turuncu
+                   d > 0.4 ? '#f43f5e' : // kırmızı
+                             '#e11d48';  // koyu kırmızı - negatif
+        }
+
+        let geojson;
+
+        function style(feature) {
+            const provinceName = feature.properties.NAME_1;
+            const sentiment = sentimentData[provinceName];
+            return {
+                fillColor: sentiment !== undefined ? getColor(sentiment) : '#cbd5e1',
+                weight: 1, opacity: 1, color: 'white', dashArray: '3', fillOpacity: 0.8
+            };
+        }
+        
+        function highlightFeature(e) {
+            const layer = e.target;
+            layer.setStyle({ weight: 3, color: '#4f46e5', dashArray: '', fillOpacity: 0.9 });
+            layer.bringToFront();
+        }
+
+        function resetHighlight(e) { geojson.resetStyle(e.target); }
+        
+        function onEachFeature(feature, layer) {
+            const provinceName = feature.properties.NAME_1;
+            
+            // Önce doğrudan il adıyla eşleşmeyi deneyelim
+            let sentiment = sentimentData[provinceName];
+            
+            // Eşleşme yoksa normalize edilmiş ada bakalım
+            if (sentiment === undefined) {
+                const normalizedName = normalizeProvinceName(provinceName);
+                Object.keys(sentimentData).forEach(key => {
+                    if (normalizeProvinceName(key).toLowerCase() === normalizedName.toLowerCase()) {
+                        sentiment = sentimentData[key];
+                    }
+                });
+            }
+            
+            let popupContent = `<strong>${provinceName}</strong><br/>`;
+            if (sentiment !== undefined) {
+                 popupContent += `Pozitif Yorum Oranı: %${(sentiment * 100).toFixed(0)}`;
+            } else {
+                popupContent += "Bu il için analiz verisi bulunmamaktadır.";
+            }
+            
+            // Popup oluştur ve mouse event'lerini ekle
+            layer.bindPopup(popupContent);
+            layer.on({
+                mouseover: highlightFeature,
+                mouseout: resetHighlight,
+                click: function(e) {
+                    // Tıklama olayında popup'ı aç
+                    layer.openPopup();
+                }
+            });
+        }
+
+        // Tamamen yeni, daha basit bir yaklaşım kullanalım
+        // GeoJSON verisini yükleyelim
+        fetch('https://raw.githubusercontent.com/uyasarkocal/borders-of-turkey/37d3efb5b0f43572b1ad41c62da8abafd1e76fd2/lvl1-TR.geojson')
+            .then(response => {
+                console.log("GeoJSON yanıtı alındı, durum:", response.status);
+                return response.json();
+            })
+            .then(turkeyData => {
+                console.log("GeoJSON başarıyla parse edildi, özelliklerin sayısı:", turkeyData.features.length);
+                
+                // DEBUG: İlk il özelliğini inceleyelim
+                if (turkeyData.features && turkeyData.features.length > 0) {
+                    console.log("İlk il özellikleri:", JSON.stringify(turkeyData.features[0].properties));
+                }
+                
+                // İL İSİMLERİ EŞLEŞTİRME TABLOSU - GeoJSON özellik adı -> sentimentData anahtarı
+                const provinceMapping = {};
+                
+                // İlk özelliğin yapısını inceleyelim - hata ayıklama
+                if (turkeyData.features && turkeyData.features.length > 0) {
+                    const firstFeature = turkeyData.features[0];
+                    console.log("İlk özellik tüm içeriği:", firstFeature);
+                    console.log("İlk özellik properties içeriği:", firstFeature.properties);
+                    
+                    // İl adı özelliğini bulmaya çalışalım
+                    const propertyKeys = Object.keys(firstFeature.properties);
+                    console.log("İlk özelliğin tüm property anahtarları:", propertyKeys);
+                }
+                
+                // Basit normalizasyon fonksiyonu - undefined koruması ile
+                function normalize(name) {
+                    if (!name) return '';
+                    
+                    return String(name).toLowerCase()
+                        .replace(/ı/g, 'i')
+                        .replace(/ö/g, 'o')
+                        .replace(/ü/g, 'u')
+                        .replace(/ş/g, 's')
+                        .replace(/ğ/g, 'g')
+                        .replace(/ç/g, 'c')
+                        .replace(/İ/g, 'i')
+                        .replace(/Ö/g, 'o')
+                        .replace(/Ü/g, 'u')
+                        .replace(/Ş/g, 's')
+                        .replace(/Ğ/g, 'g')
+                        .replace(/Ç/g, 'c');
+                }
+                
+                // İl adı özelliğini bulalım - farklı muhtemel anahtarlar kontrol ediliyor
+                function findProvinceNameFromFeature(feature) {
+                    if (!feature || !feature.properties) return null;
+                    
+                    // Muhtemel özellik anahtarları
+                    const possibleKeys = ['NAME_1', 'name', 'Name', 'NAME', 'province', 'Province', 'il', 'İl'];
+                    
+                    // Her muhtemel anahtarı kontrol et
+                    for (const key of possibleKeys) {
+                        if (feature.properties[key]) {
+                            return feature.properties[key];
+                        }
+                    }
+                    
+                    // Hiçbir anahtar bulunamadıysa, ilk string değerini döndür
+                    for (const key in feature.properties) {
+                        if (typeof feature.properties[key] === 'string') {
+                            return feature.properties[key];
+                        }
+                    }
+                    
+                    return null;
+                }
+                
+                // TÜM illeri dolaşıp, isim eşleştirmelerini hazırlayalım
+                turkeyData.features.forEach(feature => {
+                    // Il adı özelliğini alalım
+                    const geoName = findProvinceNameFromFeature(feature);
+                    
+                    // İl adı kontrolü
+                    if (!geoName) {
+                        console.error("İl adı bulunamadı:", feature);
+                        return; // Bu özelliği atla
+                    }
+                    
+                    // Eşleşme arama
+                    let match = null;
+                    
+                    try {
+                        // 1. Doğrudan eşleşme
+                        if (sentimentData[geoName] !== undefined) {
+                            match = geoName;
+                        } 
+                        // 2. Normalize edilmiş eşleşme
+                        else {
+                            const normalizedGeoName = normalize(geoName);
+                            
+                            Object.keys(sentimentData).forEach(key => {
+                                const normalizedKey = normalize(key);
+                                if (normalizedGeoName === normalizedKey) {
+                                    match = key;
+                                }
+                            });
+                        }
+                        
+                        // Özel durumlar için manuel eşleştirmeler
+                        if (!match) {
+                            // Afyon ve Afyonkarahisar eşleştirmesi
+                            if (geoName === "Afyon") match = "Afyonkarahisar";
+                            // İçel ve Mersin eşleştirmesi
+                            else if (geoName === "Icel" || geoName === "İçel") match = "Mersin";
+                            // K. Maraş ve Kahramanmaraş eşleştirmesi
+                            else if (geoName === "K. Maras" || geoName === "K.Maras") match = "Kahramanmaras";
+                        }
+                        
+                        // Eşleştirmeyi kaydet
+                        provinceMapping[geoName] = match;
+                        
+                        // Debug çıktısı
+                        console.log(`İl: ${geoName} => Eşleşme: ${match || "Bulunamadı"}`);
+                    } catch (error) {
+                        console.error(`İl işlenirken hata: ${geoName}`, error);
+                    }
+                });
+                
+                // DEBUG: Kaç il eşleşmiş görelim
+                const matchedCount = Object.values(provinceMapping).filter(Boolean).length;
+                console.log(`Toplam ${turkeyData.features.length} ilden ${matchedCount} tanesi eşleşti`);
+                
+                // Renklendirme için il verisi stil fonksiyonu
+                function provinceStyle(feature) {
+                    try {
+                        // İl adı
+                        const provinceName = findProvinceNameFromFeature(feature);
+                        
+                        if (!provinceName) {
+                            return {
+                                fillColor: '#e2e8f0', // Default gri renk
+                                weight: 1,
+                                opacity: 0.5,
+                                color: '#aaa',
+                                dashArray: '2',
+                                fillOpacity: 0.5
+                            };
+                        }
+                        
+                        // Eşleşme bulup, duygu değerini al
+                        const matchedName = provinceMapping[provinceName];
+                        const sentimentValue = matchedName ? sentimentData[matchedName] : undefined;
+                        
+                        // Stil döndür - doğrudan border ve fill'i ayarlayalım
+                        return {
+                            fillColor: sentimentValue !== undefined ? getColor(sentimentValue) : '#e2e8f0',
+                            weight: 1.5,
+                            opacity: 1,
+                            color: 'white',
+                            dashArray: '',
+                            fillOpacity: 0.9  // Maksimum görünürlük için
+                        };
+                    } catch (error) {
+                        console.error("Stil oluştururken hata:", error, feature);
+                        return {
+                            fillColor: '#f9a8d4', // Hata durumunda pembe
+                            weight: 1,
+                            opacity: 1,
+                            color: '#f43f5e',
+                            dashArray: '5',
+                            fillOpacity: 0.5
+                        };
+                    }
+                }
+                
+                // Hover olayında vurgu stili
+                function highlightFeature(e) {
+                    const layer = e.target;
+                    
+                    layer.setStyle({
+                        weight: 3,
+                        color: '#4338ca', // indigo-700
+                        dashArray: '',
+                        fillOpacity: 0.9
+                    });
+                    
+                    layer.bringToFront();
+                }
+                
+                // Hover çıkışında reset stili
+                function resetHighlight(e) {
+                    geoJsonLayer.resetStyle(e.target);
+                }
+                
+                // Her özellik için popup ve olay dinleyicileri
+                function onEachFeature(feature, layer) {
+                    try {
+                        const provinceName = findProvinceNameFromFeature(feature);
+                        
+                        if (!provinceName) {
+                            layer.bindPopup("<div class='text-red-500 font-bold'>İl adı bulunamadı</div>");
+                            return;
+                        }
+                        
+                        const matchedName = provinceMapping[provinceName];
+                        const sentiment = matchedName ? sentimentData[matchedName] : undefined;
+                        
+                        // Popup içeriği
+                        let popupContent = `<div class="font-bold">${provinceName}</div>`;
+                        
+                        if (sentiment !== undefined) {
+                            // Renk sınıfı belirle
+                            let colorClass = 'text-green-600';
+                            if (sentiment < 0.5) colorClass = 'text-red-600';
+                            else if (sentiment < 0.7) colorClass = 'text-amber-600';
+                            
+                            popupContent += `<div class="${colorClass} font-semibold">Pozitif Oran: %${(sentiment * 100).toFixed(0)}</div>`;
+                        } else {
+                            popupContent += `<div class="text-gray-500 italic">Veri bulunmuyor</div>`;
+                        }
+                        
+                        // Popup'ı bağla
+                        layer.bindPopup(popupContent);
+                        
+                        // Olay dinleyicileri
+                        layer.on({
+                            mouseover: highlightFeature,
+                            mouseout: resetHighlight,
+                            click: function(e) {
+                                // Popup'ı göster
+                                layer.openPopup();
+                                
+                                // Tıklanan ili vurgula
+                                highlightFeature(e);
+                            }
+                        });
+                    } catch (error) {
+                        console.error("Popup oluştururken hata:", error, feature);
+                        layer.bindPopup("<div class='text-red-500'>Hata oluştu</div>");
+                    }
+                }
+                
+                // Ana GeoJSON katmanını oluştur ve haritaya ekle
+                const geoJsonLayer = L.geoJson(turkeyData, {
+                    style: provinceStyle,
+                    onEachFeature: onEachFeature
+                }).addTo(map);
+                
+                // Geojson referansını güncelle
+                geojson = geoJsonLayer;
+                
+                // Harita sınırlarını GeoJSON verisine göre ayarla
+                // Sabit zoom seviyesi ile görüntüleyelim, fitBounds kullanmayalım
+                map.setView([39.0, 35.0], 5.8);
+                
+                console.log("Harita başarıyla oluşturuldu!");
+            })
+            .catch(error => {
+                // Hata durumunda kullanıcıya bilgi verelim
+                console.error("GeoJSON yüklenirken hata oluştu:", error);
+                const mapContainer = document.getElementById('map');
+                if (mapContainer) {
+                    mapContainer.innerHTML = `<div class="flex items-center justify-center h-full bg-red-50 text-red-800 p-4 rounded">
+                        <div class="text-center">
+                            <p class="font-bold">Harita yüklenirken hata oluştu</p>
+                            <p class="text-sm mt-2">${error.message}</p>
+                            <button onclick="window.location.reload()" class="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">Yeniden Dene</button>
+                        </div>
+                    </div>`;
+                }
+            });
+        
+        // Harita lejantını geliştirerek ekleyelim
+        const legend = L.control({position: 'bottomright'});
+        legend.onAdd = function (map) {
+            const div = L.DomUtil.create('div', 'info legend bg-white p-4 rounded-md custom-shadow');
+            
+            // Daha okunabilir lejant başlığı
+            div.innerHTML = '<div class="text-center mb-2"><strong>Pozitiflik Oranı</strong></div>';
+            
+            // Renk değer aralıklarını ayarla
+            const grades = [0.8, 0.7, 0.6, 0.5, 0.4];
+            const labels = ['%80+', '%70-80', '%60-70', '%50-60', '%40-50', '<%40'];
+            
+            // CSS ile renk kutucuklarını daha güzel göster
+            div.innerHTML += '<div class="flex flex-col space-y-2">';
+            
+            // Her değer aralığı için bir satır oluştur
+            for (let i = 0; i < grades.length; i++) {
+                div.innerHTML += 
+                    '<div class="flex items-center">' +
+                    '<i style="background:' + getColor(grades[i]) + '; width:20px; height:20px; display:inline-block; margin-right:8px; border-radius:2px;"></i> ' +
+                    '<span>' + labels[i] + '</span>' +
+                    '</div>';
+            }
+            
+            // Son değer (en düşük)
+            div.innerHTML += 
+                '<div class="flex items-center">' +
+                '<i style="background:' + getColor(0.3) + '; width:20px; height:20px; display:inline-block; margin-right:8px; border-radius:2px;"></i> ' +
+                '<span>' + labels[5] + '</span>' +
+                '</div>';
+                
+            div.innerHTML += '</div>';
+            
+            return div;
+        };
+        legend.addTo(map);
+    }
+</script>
+
+</body>
+</html>
+
